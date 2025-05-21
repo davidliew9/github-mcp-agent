@@ -1,11 +1,23 @@
 import asyncio
 import os
 import streamlit as st
+import shutil
 from textwrap import dedent
 from agno.agent import Agent
 from agno.tools.mcp import MCPTools
+from agno.models.openai import OpenAIChat
+from dotenv import load_dotenv
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+
+load_dotenv()
+api_key = os.getenv("API_KEY")
+
+node_bin_dir = "/Users/davidliew/.nvm/versions/node/v22.15.1/bin"
+os.environ["PATH"] += os.pathsep + node_bin_dir
+
+print("Node path:", shutil.which("node"))
+print("NPX path:", shutil.which("npx"))
 
 # Page config
 st.set_page_config(page_title="🐙 GitHub MCP Agent", page_icon="🐙", layout="wide")
@@ -65,7 +77,7 @@ async def run_github_agent(message):
     
     try:
         server_params = StdioServerParameters(
-            command="npx",
+            command="/Users/davidliew/.nvm/versions/node/v22.15.1/bin/npx",
             args=["-y", "@modelcontextprotocol/server-github"],
         )
         
@@ -75,9 +87,12 @@ async def run_github_agent(message):
                 # Initialize MCP toolkit
                 mcp_tools = MCPTools(session=session)
                 await mcp_tools.initialize()
+
+                llm = OpenAIChat(id="gpt-4o-mini", api_key=api_key)
                 
                 # Create agent
                 agent = Agent(
+                    model=llm,
                     tools=[mcp_tools],
                     instructions=dedent("""\\
                     You are a GitHub assistant. Help users explore repositories and their activity.
